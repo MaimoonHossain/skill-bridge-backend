@@ -73,7 +73,9 @@ export const getAllJobs = async (req, res) => {
         { location: { $regex: keyword, $options: "i" } },
       ],
     };
-    const jobs = await Job.find(query);
+    const jobs = await Job.find(query)
+      .populate({ path: "company" })
+      .sort({ createdAt: -1 });
 
     if (!jobs || jobs.length === 0) {
       return res.status(404).json({
