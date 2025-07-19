@@ -1,6 +1,8 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import getDataUri from "../utils/datauri.js";
+import cloudinary from "../utils/cloudinary.js";
 
 export const register = async (req, res) => {
   try {
@@ -113,8 +115,9 @@ export const logout = (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { fullName, email, phoneNumber, bio, skills } = req.body;
+    const files = req.files; // Contains both resume and profilePhoto
 
-    const userId = req.id; // Assuming userId is set in middleware
+    const userId = req.id;
     const user = await User.findById(userId);
     if (!user) {
       return res
@@ -122,15 +125,32 @@ export const updateProfile = async (req, res) => {
         .json({ message: "User not found", success: false });
     }
 
-    // Only update fields that are provided
+    // Handle Resume upload
+    if (files?.resume && files.resume[0]) {
+      const fileUri = getDataUri(files.resume[0]);
+      const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+        resource_type: "auto",
+      });
+      user.profile.resume = cloudResponse.secure_url;
+      user.profile.resumeOriginalName = files.resume[0].originalname;
+    }
+
+    // Handle Profile Photo upload
+    if (files?.profilePhoto && files.profilePhoto[0]) {
+      const fileUri = getDataUri(files.profilePhoto[0]);
+      const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+        resource_type: "image",
+        folder: "profile_photos", // Optional: store in a specific folder
+      });
+      user.profile.profilePhoto = cloudResponse.secure_url;
+    }
+
+    // Other profile fields
     if (fullName !== undefined) user.fullName = fullName;
     if (email !== undefined) user.email = email;
     if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
-
     if (bio !== undefined) user.profile.bio = bio;
-    if (skills !== undefined) {
-      user.profile.skills = skills.split(",");
-    }
+    if (skills !== undefined) user.profile.skills = skills.split(",");
 
     await user.save();
 
@@ -149,6 +169,10 @@ export const updateProfile = async (req, res) => {
       user: resUser,
     });
   } catch (error) {
-    return res.status(500).json({ message: "Error updating profile", error });
+    return res.status(500).json({
+      message: "Error updating profile",
+      success: false,
+      error: error.message,
+    });
   }
 };
