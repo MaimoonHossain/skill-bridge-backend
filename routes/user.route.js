@@ -11,7 +11,7 @@ import { uploadMiddleware } from "../middlewares/multer.js";
 
 const router = express.Router();
 
-router.route("/register").post(register);
+router.route("/register").post(uploadMiddleware, register);
 router.route("/login").post(login);
 router
   .route("/profile/update")

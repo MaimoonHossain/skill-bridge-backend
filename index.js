@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // Middleware to handle CORS
 const corsOptions = {
-  origin: "http://localhost:3001", // Replace with your frontend URL
+  origin: "http://localhost:3000", // Replace with your frontend URL
   credentials: true,
 };
 app.use(cors(corsOptions));

@@ -7,31 +7,54 @@ import cloudinary from "../utils/cloudinary.js";
 export const register = async (req, res) => {
   try {
     const { fullName, email, phoneNumber, password, role } = req.body;
+    const files = req.files;
 
     // Validate input
     if (!fullName || !email || !phoneNumber || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    const user = await User.findOne({ email });
-    if (user) {
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res
         .status(400)
         .json({ message: "User already exists", success: false });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({
+
+    const newUserData = {
       fullName,
       email,
       phoneNumber,
       password: hashedPassword,
       role,
+      profile: {}, // Default empty profile object
+    };
+
+    // ✅ Handle profile photo if provided
+    if (files?.profilePhoto && files.profilePhoto[0]) {
+      const fileUri = getDataUri(files.profilePhoto[0]);
+      const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+        resource_type: "image",
+        folder: "profile_photos",
+      });
+      newUserData.profile.profilePhoto = cloudResponse.secure_url;
+    }
+
+    // Finally create the user
+    await User.create(newUserData);
+
+    return res.status(201).json({
+      message: "Account created successfully",
+      success: true,
     });
-    res
-      .status(201)
-      .json({ message: "Account created successfully", success: true });
   } catch (error) {
-    res.status(500).json({ message: "Error registering user", error });
+    return res.status(500).json({
+      message: "Error registering user",
+      success: false,
+      error: error.message,
+    });
   }
 };
 
@@ -129,7 +152,9 @@ export const updateProfile = async (req, res) => {
     if (files?.resume && files.resume[0]) {
       const fileUri = getDataUri(files.resume[0]);
       const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
-        resource_type: "auto",
+        resource_type: "raw",
+        folder: "resumes",
+        public_id: files.resume[0].originalname, // this sets the filename
       });
       user.profile.resume = cloudResponse.secure_url;
       user.profile.resumeOriginalName = files.resume[0].originalname;
@@ -169,6 +194,7 @@ export const updateProfile = async (req, res) => {
       user: resUser,
     });
   } catch (error) {
+    console.error("Upload Error:", error);
     return res.status(500).json({
       message: "Error updating profile",
       success: false,
