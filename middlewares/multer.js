@@ -6,4 +6,5 @@ export const uploadMiddleware = multer({
 }).fields([
   { name: "resume", maxCount: 1 },
   { name: "profilePhoto", maxCount: 1 },
+  { name: "logo", maxCount: 1 }, // For company logo
 ]);

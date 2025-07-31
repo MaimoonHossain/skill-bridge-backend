@@ -1,26 +1,53 @@
 import { Company } from "../models/company.model.js";
+import cloudinary from "cloudinary";
+import getDataUri from "../utils/datauri.js";
+
+// Assuming you're using multer for file parsing
 
 export const registerCompany = async (req, res) => {
   try {
-    const { companyName } = req.body;
+    const { name, description, website, location } = req.body;
+    const files = req.files;
 
-    if (!companyName) {
+    // Validate required fields
+    if (!name || !description || !website || !location) {
       return res
         .status(400)
-        .json({ message: "Company name is required", success: false });
+        .json({ message: "All fields are required", success: false });
     }
 
-    let company = await Company.findOne({ name: companyName });
-    if (company) {
+    // Check if company already exists
+    let existingCompany = await Company.findOne({ name });
+    if (existingCompany) {
       return res
         .status(400)
         .json({ message: "Company already exists", success: false });
     }
 
-    company = await Company.create({
-      name: companyName,
+    const newCompanyData = {
+      name,
+      description,
+      website,
+      location,
       userId: req.id,
-    });
+    };
+
+    // ✅ Handle logo upload
+    if (files?.logo && files.logo[0]) {
+      const fileUri = getDataUri(files.logo[0]);
+      const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+        resource_type: "image",
+        folder: "company_logos",
+      });
+      newCompanyData.logo = cloudResponse.secure_url;
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Company logo is required", success: false });
+    }
+
+    const company = await Company.create(newCompanyData);
+
     return res.status(201).json({
       message: "Company registered successfully",
       success: true,
@@ -31,6 +58,7 @@ export const registerCompany = async (req, res) => {
     return res.status(500).json({
       message: "Internal server error",
       success: false,
+      error: error.message,
     });
   }
 };

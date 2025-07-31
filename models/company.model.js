@@ -4,20 +4,24 @@ const companySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "Company name is required"],
       unique: true,
     },
     description: {
       type: String,
+      required: [true, "Description is required"],
     },
     website: {
       type: String,
+      required: [true, "Website is required"],
     },
     location: {
       type: String,
+      required: [true, "Location is required"],
     },
     logo: {
       type: String,
+      required: [true, "Logo is required"],
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
