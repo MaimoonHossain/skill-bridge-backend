@@ -62,6 +62,117 @@ export const postJob = async (req, res) => {
   }
 };
 
+export const updateJob = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const userId = req.id; // This assumes authentication middleware sets req.id
+
+    const {
+      title,
+      description,
+      requirements,
+      jobType,
+      position,
+      companyId,
+      location,
+      salary,
+      experience,
+    } = req.body;
+
+    // Validate input
+    if (
+      !title ||
+      !description ||
+      !companyId ||
+      !location ||
+      !salary ||
+      !jobType ||
+      !position ||
+      !experience ||
+      !requirements
+    ) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const formattedRequirements = Array.isArray(requirements)
+      ? requirements.map((req) => req.trim())
+      : requirements.split(",").map((req) => req.trim());
+
+    // Fetch job by ID
+    const existingJob = await Job.findById(jobId);
+
+    if (!existingJob) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    // Authorization check
+    if (existingJob.created_by.toString() !== userId.toString()) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to update this job." });
+    }
+
+    // Update fields
+    existingJob.title = title;
+    existingJob.description = description;
+    existingJob.requirements = formattedRequirements;
+    existingJob.jobType = jobType;
+    existingJob.position = position;
+    existingJob.company = companyId;
+    existingJob.location = location;
+    existingJob.salary = Number(salary);
+    existingJob.experienceLevel = Number(experience);
+
+    // Save the updated job
+    await existingJob.save();
+
+    res.status(200).json({
+      message: "Job updated successfully",
+      success: true,
+      job: existingJob,
+    });
+  } catch (error) {
+    console.error("Error updating job:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
+  }
+};
+
+export const deleteJob = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const userId = req.id; // assuming this comes from auth middleware
+
+    // Fetch the job to ensure it exists and the user has permission
+    const job = await Job.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ message: "Job not found", success: false });
+    }
+
+    if (job.created_by.toString() !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to delete this job", success: false });
+    }
+
+    await Job.findByIdAndDelete(jobId);
+
+    res.status(200).json({
+      message: "Job deleted successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error deleting job:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+    });
+  }
+};
+
 // for students
 export const getAllJobs = async (req, res) => {
   try {
