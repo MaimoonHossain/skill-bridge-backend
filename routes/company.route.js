@@ -15,6 +15,8 @@ router
   .post(isAuthenticated, uploadMiddleware, registerCompany);
 router.route("/get").get(isAuthenticated, getCompany);
 router.route("/get/:id").get(isAuthenticated, getCompanyById);
-router.route("/update/:id").patch(isAuthenticated, updateCompany);
+router
+  .route("/update/:id")
+  .patch(isAuthenticated, uploadMiddleware, updateCompany);
 
 export default router;

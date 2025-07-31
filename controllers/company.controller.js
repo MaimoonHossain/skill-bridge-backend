@@ -114,14 +114,18 @@ export const updateCompany = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, website, location } = req.body;
-    const file = req.file;
+    const files = req.files;
 
-    const updateData = { name, description, website, location };
+    // Validate required fields
+    if (!name || !description || !website || !location) {
+      return res.status(400).json({
+        message: "All fields are required",
+        success: false,
+      });
+    }
 
-    const company = await Company.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
-
+    // Find existing company
+    const company = await Company.findById(id);
     if (!company) {
       return res.status(404).json({
         message: "Company not found",
@@ -129,16 +133,39 @@ export const updateCompany = async (req, res) => {
       });
     }
 
+    // Prepare update data
+    const updateData = {
+      name,
+      description,
+      website,
+      location,
+    };
+
+    // ✅ Handle optional logo update
+    if (files?.logo && files.logo[0]) {
+      const fileUri = getDataUri(files.logo[0]);
+      const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+        resource_type: "image",
+        folder: "company_logos",
+      });
+      updateData.logo = cloudResponse.secure_url;
+    }
+
+    const updatedCompany = await Company.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
     return res.status(200).json({
       message: "Company updated successfully",
       success: true,
-      company,
+      company: updatedCompany,
     });
   } catch (error) {
     console.error("Error updating company:", error);
     return res.status(500).json({
       message: "Internal server error",
       success: false,
+      error: error.message,
     });
   }
 };
