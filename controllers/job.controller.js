@@ -189,9 +189,10 @@ export const getAllJobs = async (req, res) => {
       .sort({ createdAt: -1 });
 
     if (!jobs || jobs.length === 0) {
-      return res.status(404).json({
+      return res.status(200).json({
         message: "No jobs found",
         success: false,
+        jobs: [],
       });
     }
 
