@@ -67,9 +67,10 @@ export const getCompany = async (req, res) => {
   try {
     const companies = await Company.find({ userId: req.id });
     if (!companies || companies.length === 0) {
-      return res.status(404).json({
+      return res.status(200).json({
         message: "Companies not found",
         success: false,
+        companies: [],
       });
     }
     return res.status(200).json({
