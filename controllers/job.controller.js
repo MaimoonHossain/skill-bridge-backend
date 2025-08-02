@@ -212,8 +212,12 @@ export const getAllJobs = async (req, res) => {
 export const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
+    // here poulate applicants also in applications
     const job = await Job.findById(id)
-      .populate("applications")
+      .populate({
+        path: "applications",
+        populate: { path: "applicant", model: "User" },
+      })
       .populate("company");
 
     if (!job) {
